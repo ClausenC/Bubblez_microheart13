@@ -19,13 +19,26 @@ public class Spielfeld extends Game
     private int zaehler;
     private int score;
     private int schusszaehler;
-
-    public Spielfeld(){
+    private boolean gameover;
+    private int highscore = 0;
+    private String highscorehalter = "noname";
+    private String spielername;
+    private Text Score;
+    private Text Gameover;
+    private boolean switched = true;
+    private String name[] = new String [1];    
+    private int scorearr[] = new int[1];
+    
+    public Spielfeld(String Spielername){
         super(402,700,"Bubblez",false,true);
         Bild Hintergrundbild = new Bild(0,0,"hintergrund_fabrik.png");
         this.hintergrundSetzen(Hintergrundbild);
         Pfeil = new Rechteck(3.0F,50.0F,6.0F,70.0F);
         wurzel.add(Pfeil);
+        Score = new Text(10,650,40,"" + score);
+        Gameover = new Text(20,280,0,"GAMEOVER");
+        wurzel.add(Gameover);
+        wurzel.add(Score);
         Pfeil.positionSetzen(199.0F,560.0F);
         xx = 0;
         Pfeil.farbeSetzen("Schwarz");
@@ -42,7 +55,7 @@ public class Spielfeld extends Game
         zaehler = 0;
         schusszaehler = 0;
         Schuss= new Schießkugel(180.0F,592.0F,zufallsfarbe());
-
+        spielername = Spielername;
         wurzel.add(Schuss);
         wurzel.add(K);
         for(int y = 10; y < 13 ; y = y+1){
@@ -53,11 +66,10 @@ public class Spielfeld extends Game
             }
         }
     }
-
     public float[] getKoods(int y, int x){
         return new float[] {x*40 , 10 + 40*(y-10)};
     }
-
+    
     public String zufallsfarbe(){
         int x = (int) (Math.random()*4);
         String kugelfarbe = "kugel_Braun.png";
@@ -75,14 +87,14 @@ public class Spielfeld extends Game
         }
         return kugelfarbe;
     }
-
+    
     public void einreihen(){
         x1 =(int) (Schuss.getX()+20)/40;
         y1 =(int) (((Schuss.getY()+20)-10)/40)+10;
         newx = x1*40+20;
         newy = 10+40*(y1-10)+20;
         if(x1>0 && x1<9){
-            if(kugelreihe[y1-1][x1] !=null || kugelreihe[y1][x1-1] != null || kugelreihe[y1][x1+1] !=null ){
+            if(kugelreihe[y1-1][x1] !=null || kugelreihe[y1][x1-1] != null || kugelreihe[y1][x1+1] !=null || y1 == 10){
                 Schuss.mittelpunktSetzen(newx,newy);
                 kugelreihe [y1][x1] = Schuss;
                 K.add(kugelreihe[y1][x1]);
@@ -102,10 +114,33 @@ public class Spielfeld extends Game
                 K.add(kugelreihe[y1][x1]);
             }
         }
+        else if(x1==0){
+            if(kugelreihe[y1-1][x1] !=null || kugelreihe[y1][x1+1] !=null || y1 == 10){
+                Schuss.mittelpunktSetzen(newx,newy);
+                kugelreihe [y1][x1] = Schuss;
+                K.add(kugelreihe[y1][x1]);
+            }
+            else{
+                x1++;
+                newx = x1*40+20;
+                Schuss.mittelpunktSetzen(newx,newy);
+                kugelreihe [y1][x1] = Schuss;
+                K.add(kugelreihe[y1][x1]);
+            }  
+        }
         else{
-            Schuss.mittelpunktSetzen(newx,newy);
-            kugelreihe [y1][x1] = Schuss;
-            K.add(kugelreihe[y1][x1]);  
+            if(kugelreihe[y1-1][x1] !=null || kugelreihe[y1][x1-1] !=null || y1 == 10){
+                Schuss.mittelpunktSetzen(newx,newy);
+                kugelreihe [y1][x1] = Schuss;
+                K.add(kugelreihe[y1][x1]);
+            }
+            else{
+                x1--;
+                newx = x1*40+20;
+                Schuss.mittelpunktSetzen(newx,newy);
+                kugelreihe [y1][x1] = Schuss;
+                K.add(kugelreihe[y1][x1]);
+            }
         }
     }
 
@@ -288,6 +323,7 @@ public class Spielfeld extends Game
                     if(kugelreihe[y][x] != null){
                         if (kugelreihe[y][x].merker > 0){
                             kugelreihe[y][x].mittelpunktSetzen(5000,5000);
+                            K.entfernen(kugelreihe[y][x]);
                             kugelreihe[y][x] = null;
                             score = score + 10;
                         }
@@ -295,10 +331,7 @@ public class Spielfeld extends Game
                 }
             }
         }
-        for(int x = 0;x<16;x++){
-            System.out.println("");
-        }
-        System.out.println("Score: " + score);
+        
         for(int y = 0; y < 999 ; y = y+1){
             for(int x = 0; x < 10 ; x= x+1){
                 if(kugelreihe[y][x] != null){
@@ -307,27 +340,61 @@ public class Spielfeld extends Game
             }
         }
     }
-
-    public void neueReihe(){
-        if (schusszaehler < 5){
-            schusszaehler++;
+    private void hscoreund(){
+        scorearr = DateiManager.integerArrayEinlesen("SCORE.eaa");
+        if (score > scorearr[0]){
+            scorearr[0]= score;
+            DateiManager.integerArraySchreiben(scorearr, "SCORE.eaa");
+  
         }
-        else{
-            for(int x = 0; x < 10 ; x= x+1){
-                    kugelreihe[10][x] = new Kugel (getKoods(10,x)[0],getKoods(10,x)[1],zufallsfarbe());
-                    wurzel.add(kugelreihe[10][x]);
-                    K.add(kugelreihe[10][x]);
-                }
-            for(int y = 50; y >0 ; y = y-1){
-                for(int x = 0; x < 10 ; x= x+1){
-                    kugelreihe[y][x] = kugelreihe[y-1][x];
-                    kugelreihe[y][x].mittelpunktSetzen(((int)getKoods(y,x)[0])+20,(((int)getKoods(y,x)[1])+20));
-                    }
-                }
-            schusszaehler = 0;
-        }
+        highscoreAnzeigen(name, scorearr , "Alltimehighscore: " + score);
+        
     }
-
+    public void neueReihe(){
+        if (schusszaehler < 10){
+            schusszaehler++;
+            return;
+        }
+        //Verschieben
+         warten(500);
+        for(int y = 50; y >0 ; y--){
+            for(int x = 0; x < 10 ; x= x+1){
+                if (kugelreihe[y][x] == null)
+                    continue;
+                kugelreihe[y+1][x] = kugelreihe[y][x];
+                kugelreihe[y+1][x].mittelpunktSetzen(((int)getKoods(y+1,x)[0])+20,(((int)getKoods(y+1,x)[1])+20));
+            }
+        }
+        //neue Kugeln
+        for(int x = 0; x < 10 ; x= x+1){
+            kugelreihe[10][x] = new Kugel (getKoods(10,x)[0],getKoods(10,x)[1],zufallsfarbe());
+            wurzel.add(kugelreihe[10][x]);
+            K.add(kugelreihe[10][x]);
+        }
+        schusszaehler = 0;
+    }
+    public void restart(){
+        score = 0;
+        schusszaehler = 0;
+        for(int y = 50; y >0 ; y--){
+            for(int x = 0; x < 10 ; x= x+1){
+                if (kugelreihe[y][x] != null){
+                    K.entfernen(kugelreihe[y][x]);
+                    kugelreihe[y][x].mittelpunktSetzen(5000,5000);
+                    kugelreihe[y][x] = null;
+                }
+            }
+        }
+        for(int y = 10; y < 13 ; y = y+1){
+            for(int x = 0; x < 10 ; x= x+1){
+                kugelreihe[y][x] = new Kugel (getKoods(y,x)[0],getKoods(y,x)[1],zufallsfarbe());
+                wurzel.add(kugelreihe[y][x]);
+                K.add(kugelreihe[y][x]);
+            }
+        }
+        gameover = false;
+        
+    }
     @Override
     public void tasteReagieren(int taste){
         if(taste == 27){
@@ -366,11 +433,89 @@ public class Spielfeld extends Game
 
             einreihen();
             prüfen();
+            switched = true;
+            warten(250);
+            while( switched == true){
+                switched = false;
+                for(int y = 24; y > 1 ; y--){
+                    for(int x = 0; x < 10 ; x= x+1){
+                    if (kugelreihe[y][x] != null){
+                       if(x>0 && x<9){
+                           if(kugelreihe[y-1][x] == null && kugelreihe[y][x-1] == null && kugelreihe[y][x+1] == null){
+                               kugelreihe[y][x].mittelpunktSetzen(5000,5000);
+                               K.entfernen(kugelreihe[y][x]);
+                                kugelreihe[y][x] = null;
+                                score = score + 10;
+                                switched = true;
+                            }
+                        }
+                       else if(x==0){
+                           if(kugelreihe[y-1][x] == null && kugelreihe[y][x+1] == null){
+                               kugelreihe[y][x].mittelpunktSetzen(5000,5000);
+                               K.entfernen(kugelreihe[y][x]);
+                                kugelreihe[y][x] = null;
+                                score = score + 10;
+                                switched = true;
+                            }
+                        }
+                        else{
+                            if(kugelreihe[y-1][x] == null && kugelreihe[y][x-1] == null){
+                               kugelreihe[y][x].mittelpunktSetzen(5000,5000);
+                               K.entfernen(kugelreihe[y][x]);
+                                kugelreihe[y][x] = null;
+                                score = score + 10;
+                                switched = true;
+                            }
+                        }
+                    }
+                    
+                }
+            }
+        }
+         
+            Score.inhaltSetzen("" + score);
+           
             neueReihe();
             Schuss = new Schießkugel(180.0F,592.0F,zufallsfarbe());
             wurzel.add(Schuss);
-
+            gameover = true;
+                for(int y = 0; y < 24 ; y++){
+                    for(int x = 0; x < 10 ; x= x+1){
+                    if (kugelreihe[y][x] != null){
+                       gameover = false; 
+                    }
+                }
+            }
+            for(int x = 0;x<10;x++){
+                if(kugelreihe[24][x] != null){
+                    gameover = true;
+                    Gameover.leuchtetSetzen(true);
+                    Gameover.groesseSetzen(60);
+                    warten(3000);
+                    Gameover.groesseSetzen(0);
+                    Gameover.leuchtetSetzen(false);
+                }
+            }
+            if(gameover == true ){
+                if(score > highscore){
+                    highscore = score;
+                    highscorehalter = spielername;
+                }
+                System.out.println("Der Highscore deiner Session ist "+highscore+" und wurde von " +highscorehalter+ " aufgestellt!");
+                hscoreund();
+                restart();
+            }
+        }
+        else if(taste == 17){
+            restart();
+        }
+        else{
+            System.out.println("Drücke Leertaste, um zu schiessen");
+            System.out.println("Drücke [-->], um nach links zu zielen");
+            System.out.println("Drücke [<--], um nach rechts zu zielen");
+            System.out.println("Drücke [R], um neu zu starten");
         }
     }
+    
 }
 
